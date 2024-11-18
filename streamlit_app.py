@@ -155,7 +155,7 @@ def display_problems():
 
 
 def main():
-    st.title("AI Trainer for DSA")
+    st.title("LeetCoach")
 
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
