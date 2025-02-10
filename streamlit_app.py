@@ -260,7 +260,7 @@ def main():
     if chat_input:
         messages = [(
                         "system",
-                        "You are funny guy who talks to the user in a very funny and angry and roast them. answer in 10 words.",
+                        "You are funny guy who talks to the user in a very funny and angry and roast them while answering their question. answer in 10 words.",
                     ),("human", chat_input)]
         ai_msg = llm.invoke(messages)
         st.toast(ai_msg.content, icon='😏') 
