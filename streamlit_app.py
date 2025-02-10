@@ -3,9 +3,10 @@ import streamlit as st
 import os
 from langchain_groq import ChatGroq
 import requests
-import json , pandas as pd
+import pandas as pd
 
-user_contest_rating= 0
+user_contest_rating = 0
+data = []
 
 def get_profile_data(username):
     scraper = LeetcodeScraper()
@@ -13,7 +14,8 @@ def get_profile_data(username):
     return profile_data
 
 def format_userdata(profile_data):
-    st.write("Profile Data:",profile_data)
+    with st.sidebar.expander("Raw View Profile Data", expanded=False):
+        st.write("Profile Data:", profile_data)
     username = "N/A"
     rank_in_problem_count = "N/A"
     aboutMe = "N/A"
@@ -72,6 +74,7 @@ def format_userdata(profile_data):
     # Formatted user data for the LLM prompt
     userdata = f"""
     The username : {username} \n
+    About me : {aboutMe} \n
     Total problem solved : {total_solved_problems} \n
     No of easy problems solved : {total_solved_problems_easy} \n
     No of medium problems solved : {total_solved_problems_medium} \n
@@ -84,33 +87,37 @@ def format_userdata(profile_data):
     Global ranking in contest : {global_ranking} \n
     Global ranking in problem count : {rank_in_problem_count} \n
     """
-
-    st.sidebar.title("Performance Overview")
-    st.sidebar.markdown(f"**Username**: {username}")
-    st.sidebar.markdown(f"**Total Problems Solved**: {total_solved_problems}")
-    st.sidebar.markdown(f"**Easy Problems Solved**: {total_solved_problems_easy}")
-    st.sidebar.markdown(f"**Medium Problems Solved**: {total_solved_problems_medium}")
-    st.sidebar.markdown(f"**Hard Problems Solved**: {total_solved_problems_hard}")
-    st.sidebar.markdown(f"**Active Years**: {', '.join(map(str, activeYears))}")
-    st.sidebar.markdown(f"**Longest Streak**: {streak} days")
-    st.sidebar.markdown(f"**Total Active Days**: {totalActiveDays} days")
-    st.sidebar.markdown(f"**Contests Attended**: {attendedContestsCount}")
-    st.sidebar.markdown(f"**Contest Rating**: {rating}")
-    st.sidebar.markdown(f"**Global Ranking (Contests)**: {global_ranking}")
-    st.sidebar.markdown(f"**Global Ranking (Problem Count)**: {rank_in_problem_count}")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.info(f"**Username**: {username}")
+        st.info(f"**Total Problems Solved**: {total_solved_problems}")
+        st.info(f"**Easy Problems Solved**: {total_solved_problems_easy}")
+        st.info(f"**Medium Problems Solved**: {total_solved_problems_medium}")
+    with col2:
+        st.info(f"**Hard Problems Solved**: {total_solved_problems_hard}")
+        st.info(f"**Active Years**: {', '.join(map(str, activeYears))}")
+        st.info(f"**Longest Streak**: {streak} days")
+        st.info(f"**Total Active Days**: {totalActiveDays} days")
+    with col3:
+        st.info(f"**Contests Attended**: {attendedContestsCount}")
+        st.info(f"**Contest Rating**: {rating}")
+        st.info(f"**Global Ranking (Contests)**: {global_ranking}")
+        st.info(f"**Global Ranking (Problem Count)**: {rank_in_problem_count}")
 
     return userdata
 
 def get_problem_rating():
-    url = "https://zerotrac.github.io/leetcode_problem_rating/data.json"
-    response = requests.get(url)
+    if 'problem_data' not in st.session_state:
+        url = "https://zerotrac.github.io/leetcode_problem_rating/data.json"
+        response = requests.get(url)
 
-    if response.status_code == 200:
-        data = response.json()
-        return data
-    else:
-        st.error(f"Failed to retrieve data: {response.status_code}")
-        return []
+        if response.status_code == 200:
+            st.session_state.problem_data = response.json()
+        else:
+            st.error(f"Failed to retrieve data: {response.status_code}")
+            st.session_state.problem_data = []
+    return st.session_state.problem_data
 
 def calculate_difficulty(rating, problem_rating):
     if rating - 100 <= problem_rating <= rating + 100:
@@ -133,36 +140,83 @@ def display_problems():
         columns_to_display = ['ID', 'Title', 'Rating', 'Difficulty']
         df_filtered = df[columns_to_display]
 
+        st.sidebar.header("Filter Controls For Problem Ratings")
         # Existing filter controls
-        min_rating, max_rating = st.slider(
+        min_rating, max_rating = st.sidebar.slider(
             "Select Rating Range",
             min_value=int(df_filtered['Rating'].min()),
             max_value=int(df_filtered['Rating'].max()),
             value=(int(df_filtered['Rating'].min()), int(df_filtered['Rating'].max()))
         )
-        min_id, max_id = st.slider(
+        min_id, max_id = st.sidebar.slider(
             "Select Question ID Range",
             min_value=int(df_filtered['ID'].min()),
             max_value=int(df_filtered['ID'].max()),
             value=(int(df_filtered['ID'].min()), int(df_filtered['ID'].max()))
         )
 
-        # Apply filters
+
         df_filtered = df_filtered[(df_filtered['Rating'] >= min_rating) & (df_filtered['Rating'] <= max_rating)]
         df_filtered = df_filtered[(df_filtered['ID'] >= min_id) & (df_filtered['ID'] <= max_id)]
 
-        st.table(df_filtered[['ID', 'Title', 'Rating', 'Difficulty']])
+        
+        # Add pagination
+        items_per_page = 10
+        total_items = len(df_filtered)
+        total_pages = (total_items // items_per_page) + (1 if total_items % items_per_page > 0 else 0)
 
+        page_number = st.sidebar.number_input("Page Number", min_value=1, max_value=total_pages, value=1, step=1)
+        start_idx = (page_number - 1) * items_per_page
+        end_idx = start_idx + items_per_page
+
+        df_paginated = df_filtered.iloc[start_idx:end_idx]
+        st.table(df_paginated[['ID', 'Title', 'Rating', 'Difficulty']])
+
+        st.write(f"Page {page_number} of {total_pages}")
+        with st.expander("Logic Behind Problem Difficulty", expanded=False):
+            st.info('''The Problem Rating based on your contest rating is calculated as follows:
+            \n- If the problem rating is within ±100 of your contest rating, it is considered Medium.
+            \n- If the problem rating is less than your contest rating - 100, it is considered Easy.
+            \n- If the problem rating is greater than your contest rating + 100, it is considered Hard.''')
+        
+        st.expander("Show Entire Table", expanded=False).write(df_filtered)
 
 def main():
+    st.set_page_config(page_title="LeetCoach", page_icon=":rocket:", layout="wide")
     st.title("LeetCoach")
+    st.markdown("""
+        <style>
+        .main {
+            background-color: #f0f2f6;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .sidebar .sidebar-content {
+            background-color: #f0f2f6;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         st.error("GROQ_API_KEY environment variable is not set. Please set it to use this app.")
         return
 
-    # Initialize LLM
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
         temperature=1,
@@ -172,9 +226,12 @@ def main():
         groq_api_key=api_key
     )
 
-    username = st.text_input("Enter LeetCode Username:")
+    with st.sidebar:
+        st.title("LeetCoach")
+        username = st.text_input("Enter LeetCode Username:")
+        analyze_button = st.button("Analyze Me")
 
-    if st.button("Analyze Me"):
+    if analyze_button:
         if username:
             try:
                 profile_data = get_profile_data(username)
@@ -187,8 +244,8 @@ def main():
                     ("human", userdata),
                 ]
                 ai_msg = llm.invoke(messages)
-                st.write(ai_msg.content)
-
+                st.header("Performance overview")
+                st.success(ai_msg.content)
 
             except Exception as e:
                 st.error(f"Error fetching or processing profile data: {e}")
@@ -196,6 +253,8 @@ def main():
             st.warning("Please enter a valid LeetCode username.")
 
     display_problems()
+
+    st.success("Please give 'STAR' to the repo if you like the app :star:")
 
 if __name__ == "__main__":
     if 'user_contest_rating' not in st.session_state:
