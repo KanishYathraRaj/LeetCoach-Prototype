@@ -4,7 +4,6 @@ import os
 from langchain_groq import ChatGroq
 import requests
 import pandas as pd
-import time
 
 user_contest_rating = 0
 data = []
@@ -264,13 +263,7 @@ def main():
                         "You are funny guy who talks to the user in a very funny and angry and roast them while answering their question. answer in 10 words.",
                     ),("human", chat_input)]
         ai_msg = llm.invoke(messages)
-        msg = st.toast(ai_msg.content, icon='😏') 
-        time.sleep(1)
-        msg(ai_msg.content, icon='😏')
-        time.sleep(1) 
-        msg(ai_msg.content, icon='😏') 
-        time.sleep(1)
-        msg(ai_msg.content, icon='😏') 
+        st.toast(ai_msg.content, icon='😏') 
 
     st.success("Please give 'STAR' to the repo if you like the app :star:")
 
