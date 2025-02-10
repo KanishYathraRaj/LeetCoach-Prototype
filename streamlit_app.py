@@ -246,13 +246,24 @@ def main():
                 ai_msg = llm.invoke(messages)
                 st.header("Performance overview")
                 st.success(ai_msg.content)
-
+                st.snow()
+                st.balloons()
+                st.toast('Your Leetcode has been analyzed successfully!', icon='😍')
             except Exception as e:
                 st.error(f"Error fetching or processing profile data: {e}")
         else:
             st.warning("Please enter a valid LeetCode username.")
 
     display_problems()
+    st.sidebar.header("Just for fun")
+    chat_input = st.sidebar.chat_input("Chat with me Serectly🫥!")
+    if chat_input:
+        messages = [(
+                        "system",
+                        "You are funny guy who talks to the user in a very funny and angry and roast them. answer in 10 words.",
+                    ),("human", chat_input)]
+        ai_msg = llm.invoke(messages)
+        st.toast(ai_msg.content, icon='😏') 
 
     st.success("Please give 'STAR' to the repo if you like the app :star:")
 
