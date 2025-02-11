@@ -35,12 +35,12 @@ def store_user_data(username, userdata):
     st.toast(f"Storing data for {username}...")
     st.toast(f"time: {current_time}")
     st.write(f"userdata: {userdata}")
-    # doc_ref = db.collection('leetcode_users_2').document(username)
-    # doc_ref.set({
-    #     'username': username,
-    #     'profile_data': userdata,
-    #     'timestamp' : current_time,
-    # })
+    doc_ref = db.collection('leetcode_users_2').document(username)
+    doc_ref.set({
+        'username': username,
+        'profile_data': userdata,
+        'timestamp' : current_time,
+    })
     st.toast(f"Be ready for emotional damage {username}...")
 
 def store_roast_data(username, roast):
