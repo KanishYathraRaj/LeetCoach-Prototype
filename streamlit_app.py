@@ -36,12 +36,19 @@ def store_user_data(username, userdata):
     st.toast(f"time: {current_time}")
     st.write(f"userdata: {userdata}")
     doc_ref = db.collection('leetcode_users_2').document(username)
+    doc = doc_ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        count = data.get('count', 0) + 1
+    else:
+        count = 1
     doc_ref.set({
         'username': username,
         'profile_data': userdata,
-        'timestamp' : current_time,
+        'timestamp': current_time,
+        'count': count,
     })
-    st.toast(f"Be ready for emotional damage {username}...")
+    st.toast(f"Successfully fetched the leetcode data of {username}...")
 
 def store_roast_data(username, roast):
     db = initialize_firebase()
