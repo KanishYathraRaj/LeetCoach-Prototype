@@ -4,9 +4,53 @@ import os
 from langchain_groq import ChatGroq
 import requests
 import pandas as pd
+import base64
+import json
+import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 user_contest_rating = 0
 data = []
+
+def initialize_firebase():
+    encoded_service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    service_account_json = base64.b64decode(encoded_service_account_json).decode()
+    service_account_info = json.loads(service_account_json)
+    cred = credentials.Certificate(service_account_info)
+    try:
+        firebase_admin.initialize_app(cred)
+    except ValueError:
+        # If the app is already initialized, we'll just use it
+        pass
+    
+    # Initialize Firestore
+    db = firestore.client()
+    return db
+
+
+def store_user_data(username, userdata):
+    db = initialize_firebase()
+    current_time = datetime.datetime.now()
+    st.toast(f"Storing data for {username}...")
+    st.toast(f"time: {current_time}")
+    st.write(f"userdata: {userdata}")
+    # doc_ref = db.collection('leetcode_users_2').document(username)
+    # doc_ref.set({
+    #     'username': username,
+    #     'profile_data': userdata,
+    #     'timestamp' : current_time,
+    # })
+    st.toast(f"Be ready for emotional damage {username}...")
+
+def store_roast_data(username, roast):
+    db = initialize_firebase()
+    doc_ref = db.collection('leetcode_users_2').document(username)
+    doc_ref.update({
+        'roast': roast
+    })
+    st.toast("Feel free to contact at kanish.aims@gmail.com for Bugs and Suggestions")
+
 
 def get_profile_data(username):
     scraper = LeetcodeScraper()
@@ -236,6 +280,7 @@ def main():
             try:
                 profile_data = get_profile_data(username)
                 userdata = format_userdata(profile_data)
+                store_user_data(username, userdata)
                 messages = [
                     (
                         "system",
