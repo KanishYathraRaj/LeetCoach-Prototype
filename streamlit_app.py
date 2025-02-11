@@ -21,20 +21,13 @@ def initialize_firebase():
     try:
         firebase_admin.initialize_app(cred)
     except ValueError:
-        # If the app is already initialized, we'll just use it
         pass
-    
-    # Initialize Firestore
     db = firestore.client()
     return db
-
 
 def store_user_data(username, userdata):
     db = initialize_firebase()
     current_time = datetime.datetime.now()
-    st.toast(f"Storing data for {username}...")
-    st.toast(f"time: {current_time}")
-    st.write(f"userdata: {userdata}")
     doc_ref = db.collection('leetcode_users_2').document(username)
     doc = doc_ref.get()
     if doc.exists:
@@ -49,15 +42,6 @@ def store_user_data(username, userdata):
         'count': count,
     })
     st.toast(f"Successfully fetched the leetcode data of {username}...")
-
-def store_roast_data(username, roast):
-    db = initialize_firebase()
-    doc_ref = db.collection('leetcode_users_2').document(username)
-    doc_ref.update({
-        'roast': roast
-    })
-    st.toast("Feel free to contact at kanish.aims@gmail.com for Bugs and Suggestions")
-
 
 def get_profile_data(username):
     scraper = LeetcodeScraper()
